@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>VAYRON — Mobile Chase Game</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#07101b;touch-action:none;font-family:Arial,Helvetica,sans-serif}
+body{display:flex;align-items:center;justify-content:center}
+#wrap{position:relative;width:100vw;height:100dvh;overflow:hidden;background:#111}
+canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+#hud{position:absolute;inset:0;pointer-events:none;color:#fff;text-shadow:0 2px 5px #000}
+.topLeft{position:absolute;left:3%;top:4%;font-weight:900;letter-spacing:.12em}
+.brand{font-size:clamp(11px,1.4vw,17px)}
+.sub{font-size:clamp(7px,1vw,11px);opacity:.75;margin-top:5px}
+.topRight{position:absolute;right:3%;top:5%;text-align:right}
+.label{font-size:clamp(8px,1vw,12px);letter-spacing:.16em;opacity:.8}
+.score{font-size:clamp(18px,3vw,34px);font-weight:900;letter-spacing:.05em}
+#hearts{position:absolute;left:3%;top:15%;font-size:clamp(16px,2.3vw,28px);letter-spacing:4px}
+#wrong{position:absolute;left:50%;top:7%;transform:translateX(-50%);font-weight:900;font-size:clamp(12px,1.7vw,20px);letter-spacing:.22em;opacity:.9}
+.bottomLeft{position:absolute;left:3%;bottom:8%;width:min(190px,28vw)}
+.bar{height:7px;background:#162130;border-radius:8px;overflow:hidden;border:1px solid #ffffff35}
+#nitro{height:100%;width:65%;background:#fff;border-radius:8px}
+.stats{display:flex;gap:14px;margin-top:8px;font-size:clamp(7px,1vw,11px);font-weight:800}
+.bottomRight{position:absolute;right:3%;bottom:6%;text-align:right}
+#speed{font-size:clamp(42px,7vw,86px);line-height:.85;font-weight:900;font-style:italic}
+.kmh{font-size:clamp(9px,1.2vw,14px);font-weight:800;letter-spacing:.2em}
+#nitroText{font-size:clamp(8px,1vw,12px);margin-top:9px;opacity:.85}
+#start{position:absolute;inset:0;background:linear-gradient(#06101acc,#06101a66);display:flex;align-items:center;justify-content:center;z-index:5}
+.homeButtons{display:flex;flex-direction:column;gap:10px;margin-top:18px}
+.mainBtn{width:100%;background:#fff;color:#07101b;border:0;border-radius:13px;padding:16px;font-size:19px;font-weight:900}
+.menu{display:flex;flex-direction:column;gap:10px}
+.settingsList{display:flex;flex-direction:column;gap:8px;margin:14px 0}
+.setting{display:flex;align-items:center;justify-content:space-between;background:#101d2b;border:1px solid #ffffff18;border-radius:11px;padding:12px 13px;color:#e8edf2;font-size:12px;font-weight:900}
+.settingBtn{min-width:86px;background:#1c3044;color:#fff;border:1px solid #ffffff25;border-radius:8px;padding:8px 9px;font-size:11px;font-weight:900}
+.menuBtn{width:100%;background:#101d2b;color:#fff;border:1px solid #ffffff22;text-align:left;padding:15px 17px;border-radius:13px;font-size:15px;font-weight:900}
+.menuBtn small{display:block;color:#9eabb8;font-weight:500;margin-top:4px}
+.modeTitle{font-size:11px;letter-spacing:.18em;color:#aeb9c4;margin:4px 0 10px}
+.difficulties{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.diff{background:#142131;color:#fff;border:1px solid #ffffff25;border-radius:11px;padding:12px 5px;font-weight:900;font-size:12px}
+.diff small{display:block;color:#9eabb8;font-weight:500;margin-top:4px}
+.back{background:transparent;color:#aeb9c4;border:0;padding:9px;font-weight:800}
+#homePanel,#difficultyPanel{width:min(430px,86vw)}
+#difficultyPanel{display:none}
+#selectedMode{font-size:28px;font-weight:900;margin-bottom:5px}
+#modeDesc{color:#b9c4ce;font-size:13px;margin-bottom:18px}
+.card{width:min(430px,86vw);background:#08121de8;border:1px solid #ffffff25;border-radius:20px;padding:26px;text-align:center;box-shadow:0 20px 70px #0009}
+.card h1{margin:0 0 7px;font-size:clamp(28px,6vw,48px)}
+.card p{margin:7px 0 20px;color:#cbd4df;line-height:1.45}
+button{border:0;border-radius:13px;padding:14px 28px;font-weight:900;font-size:17px;background:#fff;color:#07101b}
+#gameover{position:absolute;inset:0;background:#02070ccc;display:none;align-items:center;justify-content:center;z-index:6;text-align:center}
+.hidden{display:none!important}
+.hint{font-size:12px;opacity:.65;margin-top:13px}
+@media (orientation:portrait){
+  #wrap{width:100vw;height:100dvh}
+}
+</style>
+</head>
+<body>
+<div id="wrap">
+<canvas id="c"></canvas>
+<div id="hud">
+  <div class="topLeft"><div class="brand">PARIS</div><div class="sub">POLICE PURSUIT</div></div>
+  <div id="wrong">VAYRON</div>
+  <div id="hearts">♥ ♥ ♥</div>
+  <div class="topRight"><div class="label">CHASE SCORE</div><div id="score" class="score">00000</div></div>
+  <div class="bottomLeft"><div class="bar"><div id="nitro"></div></div><div class="stats"><span>VICTORY 100%</span><span>POLICE</span></div></div>
+  <div class="bottomRight"><div id="speed">72</div><div class="kmh">KM/H</div><div id="nitroText">+ NITRO &nbsp; BOOSTING</div></div>
+</div>
+<div id="start">
+  <div id="homePanel" class="card">
+    <div class="modeTitle">POLICE PURSUIT</div>
+    <h1>VAYRON</h1>
+    <p>Drive against traffic. Dodge the cars. Stay ahead of the police.</p>
+    <div class="homeButtons">
+      <button id="homePlay" class="mainBtn">▶ PLAY</button>
+      <button id="homeSettings" class="menuBtn">⚙ SETTINGS</button>
+    </div>
+    <div class="hint">Swipe left / right to change lanes</div>
+  </div>
+
+  <div id="playPanel" class="card" style="display:none">
+    <div class="modeTitle">SELECT MODE</div>
+    <div class="menu">
+      <button class="menuBtn" data-mode="Wrong Way Chase">VAYRON CHASE<small>Classic endless chase</small></button>
+      <button class="menuBtn" data-mode="Time Rush">TIME RUSH<small>Score before the timer reaches zero</small></button>
+      <button class="menuBtn" data-mode="Police Escape">POLICE ESCAPE<small>Keep the police away</small></button>
+      <button class="menuBtn" data-mode="Traffic Rush">TRAFFIC RUSH<small>Heavy traffic and faster action</small></button>
+    </div>
+    <button class="back" id="backHomeFromPlay">← HOME</button>
+  </div>
+
+  <div id="difficultyPanel" class="card" style="display:none">
+    <div class="modeTitle">DIFFICULTY</div>
+    <div id="selectedMode">VAYRON CHASE</div>
+    <div id="modeDesc">Classic endless chase.</div>
+    <div class="difficulties">
+      <button class="diff" data-diff="easy">EASY<small>Relaxed</small></button>
+      <button class="diff" data-diff="medium">MEDIUM<small>Balanced</small></button>
+      <button class="diff" data-diff="hard">HARD<small>Intense</small></button>
+    </div>
+    <button class="back" id="backToPlay">← MODES</button>
+  </div>
+
+  <div id="settingsPanel" class="card" style="display:none">
+    <div class="modeTitle">SETTINGS</div>
+    <div class="settingsList">
+      <div class="setting"><span>GRAPHICS</span><button class="settingBtn" id="graphicsBtn">HIGH</button></div>
+      <div class="setting"><span>LANGUAGE</span><button class="settingBtn" id="languageBtn">ENGLISH</button></div>
+      <div class="setting"><span>SOUND</span><button class="settingBtn" id="soundBtn">ON</button></div>
+      <div class="setting"><span>MUSIC</span><button class="settingBtn" id="musicBtn">ON</button></div>
+      <div class="setting"><span>VIBRATION</span><button class="settingBtn" id="vibrationBtn">ON</button></div>
+      <div class="setting"><span>CONTROL</span><button class="settingBtn" id="controlBtn">SWIPE</button></div>
+      <div class="setting"><span>FPS</span><button class="settingBtn" id="fpsBtn">60</button></div>
+    </div>
+    <button class="back" id="backHomeFromSettings">← HOME</button>
+  </div>
+</div>
+<div id="gameover"><div class="card"><h1>CHASE OVER</h1><p id="final"></p><button id="again">PLAY AGAIN</button></div></div>
+</div>
+<script>
+const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
+let W=0,H=0,dpr=1,last=0,running=false,score=0,speed=72,hearts=3,lane=1,targetLane=1;
+let police=0.12,nitro=65,shake=0,flash=0,spawnClock=0;
+let selectedMode='Wrong Way Chase', difficulty='medium';
+let modeSpeed=1, spawnRate=1, policeRate=1, timeLeft=60;
+let cars=[],roadOffset=0,buildings=[];
+const colors=['#f04469','#31a6d9','#e8e8e8','#ef9c36','#6e77e9','#48b889'];
+
+function resize(){
+  dpr=Math.min(devicePixelRatio||1,2); W=innerWidth; H=innerHeight;
+  canvas.width=W*dpr; canvas.height=H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
+  buildings=[];
+  for(let i=0;i<18;i++) buildings.push({side:i%2?-1:1,z:i/18+Math.random()*.05,w:.08+Math.random()*.09,h:.12+Math.random()*.24,seed:Math.random()});
+}
+addEventListener('resize',resize); resize();
+
+function reset(){
+ const settings={
+   easy:{speed:62,spawn:1.25,police:.70},
+   medium:{speed:72,spawn:1.0,police:1.0},
+   hard:{speed:82,spawn:.62,police:1.35}
+ }[difficulty];
+ score=0; speed=settings.speed; hearts=3; lane=targetLane=1; police=.10; nitro=65; shake=0; flash=0; roadOffset=0; spawnClock=.2;
+ modeSpeed=selectedMode==='Traffic Rush'?1.16:1;
+ spawnRate=settings.spawn*(selectedMode==='Traffic Rush'?.68:1);
+ policeRate=settings.police*(selectedMode==='Police Escape'?1.25:1);
+ timeLeft=selectedMode==='Time Rush'?(difficulty==='easy'?75:difficulty==='hard'?45:60):9999;
+ cars=[];
+ for(let i=0;i<7;i++) cars.push({lane:Math.floor(Math.random()*3),z:.05+i*.13,color:colors[i%colors.length],type:i%5===0?1:0});
+ updateHud();
+}
+function roadWidth(z){return W*(.10+.47*z)}
+function laneX(l,z){return W/2+(l-1)*roadWidth(z)*.55}
+function horizon(){return H*.30}
+function projY(z){return horizon()+z*(H*.77)}
+function updateHud(){
+ document.getElementById('score').textContent=selectedMode==='Time Rush'?String(Math.ceil(timeLeft)).padStart(3,'0'):String(Math.floor(score)).padStart(5,'0');
+ document.querySelector('.topRight .label').textContent=selectedMode==='Time Rush'?'TIME LEFT':'CHASE SCORE';
+ document.getElementById('speed').textContent=Math.round(speed);
+ document.getElementById('hearts').textContent='♥ '.repeat(hearts).trim() + (hearts<3?' ♡'.repeat(3-hearts):'');
+ document.getElementById('nitro').style.width=Math.round(nitro)+'%';
+}
+function spawn(){
+ let lanePick=Math.floor(Math.random()*3);
+ if(cars.some(c=>c.z<.18 && c.lane===lanePick)) return;
+ cars.push({lane:lanePick,z:-.04,color:colors[Math.floor(Math.random()*colors.length)],type:Math.random()<.16?1:0});
+}
+function hit(){
+ hearts--; police=Math.min(.92,police+.24); flash=.22; shake=12;
+ cars=cars.filter(c=>c.z<.72 || c.lane!==lane);
+ if(hearts<=0){running=false;document.getElementById('final').textContent='Score: '+Math.floor(score)+' — the police caught you.';document.getElementById('gameover').style.display='flex';}
+ updateHud();
+}
+function update(dt){
+ speed=Math.min(100,speed+dt*1.8*modeSpeed);
+ score+=dt*speed*1.45;
+ nitro=Math.max(0,nitro-dt*2.2);
+ roadOffset=(roadOffset+dt*(.42+speed/210))%1;
+ spawnClock-=dt;
+ if(spawnClock<=0){spawn();spawnClock=(.48+Math.random()*.48)*spawnRate}
+ for(const c of cars)c.z+=dt*(.30+speed/165);
+ for(let i=cars.length-1;i>=0;i--) if(cars[i].z>1.12)cars.splice(i,1);
+ const p=cars.find(c=>c.lane===lane && c.z>.72 && c.z<.94);
+ if(p && !p.hit){p.hit=true;hit();}
+ if(Math.abs(targetLane-lane)>.01) lane+=(targetLane-lane)*Math.min(1,dt*11);
+ else lane=targetLane;
+ police=Math.max(.04,police-dt*.006*policeRate);
+ if(selectedMode==='Time Rush'){
+   timeLeft-=dt;
+   if(timeLeft<=0){timeLeft=0;running=false;document.getElementById('final').textContent='Time up! Score: '+Math.floor(score);document.getElementById('gameover').style.display='flex';}
+ }
+ shake=Math.max(0,shake-dt*35); flash=Math.max(0,flash-dt);
+ updateHud();
+}
+function poly(points,fill,stroke){
+ ctx.beginPath();ctx.moveTo(points[0][0],points[0][1]);for(let i=1;i<points.length;i++)ctx.lineTo(points[i][0],points[i][1]);ctx.closePath();
+ if(fill){ctx.fillStyle=fill;ctx.fill()} if(stroke){ctx.strokeStyle=stroke;ctx.stroke()}
+}
+function drawCity(){
+ const hz=horizon();
+ ctx.fillStyle='#aab5bf';ctx.fillRect(0,0,W,H);
+ const sky=ctx.createLinearGradient(0,0,0,hz);sky.addColorStop(0,'#151d2b');sky.addColorStop(1,'#d5d7d1');ctx.fillStyle=sky;ctx.fillRect(0,0,W,hz+30);
+ // distant skyline
+ ctx.fillStyle='#4b5661';for(let i=0;i<14;i++){let x=i*W/13;let bw=W*.05+(i%3)*W*.018;let bh=H*(.06+(i%4)*.025);ctx.fillRect(x,hz-bh,bw,bh)}
+ // landmark
+ ctx.strokeStyle='#4a5660';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(W*.5,hz);ctx.lineTo(W*.5,hz-H*.18);ctx.moveTo(W*.46,hz);ctx.lineTo(W*.5,hz-H*.18);ctx.lineTo(W*.54,hz);ctx.stroke();
+ ctx.fillStyle='#58636b';ctx.fillRect(W*.47,hz-H*.105,W*.06,4);
+ // buildings with perspective
+ for(const b of buildings){
+   let z=(b.z+roadOffset*.22)%1; let y=hz+z*(H*.62); let depth=1-z*.78;
+   let x=W/2+b.side*(roadWidth(z)*1.18);
+   let bw=W*b.w*depth, bh=H*b.h*depth;
+   let top=y-bh;
+   const wall=b.side<0?'#e7e6df':'#dddcd5';
+   if(b.side<0) poly([[x-bw,top],[x,top+bh*.05],[x,y],[x-bw*.72,y]],wall);
+   else poly([[x,top+bh*.05],[x+bw,top],[x+bw*.72,y],[x,y]],wall);
+   ctx.fillStyle='#7c8991';
+   for(let r=0;r<3;r++)for(let col=0;col<2;col++){
+     let wx=x+b.side*(bw*(.25+col*.34)); let wy=top+bh*(.25+r*.22);
+     ctx.fillRect(wx-b.side*2,wy,Math.max(2,W*.008*depth),Math.max(2,H*.018*depth));
+   }
+ }
+}
+function drawRoad(){
+ const hz=horizon(), topW=roadWidth(0), botW=roadWidth(1);
+ poly([[W/2-topW,hz],[W/2+topW,hz],[W/2+botW,H],[W/2-botW,H]],'#596168');
+ // sidewalks
+ poly([[W/2-topW,hz],[W/2-topW*.72,hz],[W/2-botW*.98,H],[W/2-botW,H]],'#c9c8c0');
+ poly([[W/2+topW*.72,hz],[W/2+topW,hz],[W/2+botW,H],[W/2+botW*.98,H]],'#c9c8c0');
+ // road edge
+ ctx.strokeStyle='#e8e8df';ctx.lineWidth=3;
+ ctx.beginPath();ctx.moveTo(W/2-topW,hz);ctx.lineTo(W/2-botW,H);ctx.moveTo(W/2+topW,hz);ctx.lineTo(W/2+botW,H);ctx.stroke();
+ // lane dashes
+ ctx.strokeStyle='#f4f2df';ctx.lineWidth=Math.max(2,W*.004);
+ for(let l=1;l<3;l++){
+   for(let i=0;i<11;i++){
+     let z=(i/10+roadOffset)%1, z2=Math.min(1,z+.055);
+     let x1=W/2+(l-1.5)*roadWidth(z)*.74, x2=W/2+(l-1.5)*roadWidth(z2)*.74;
+     ctx.beginPath();ctx.moveTo(x1,projY(z));ctx.lineTo(x2,projY(z2));ctx.stroke();
+   }
+ }
+ // roadside lights/trees
+ for(let i=0;i<9;i++){
+   let z=(i/9+roadOffset*.65)%1,y=projY(z),xOff=roadWidth(z)*1.08;
+   let h=H*(.025+.08*z);
+   ctx.strokeStyle='#4c555a';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(W/2-xOff,y);ctx.lineTo(W/2-xOff,y-h);ctx.moveTo(W/2+xOff,y);ctx.lineTo(W/2+xOff,y-h);ctx.stroke();
+   ctx.fillStyle='#477257';ctx.beginPath();ctx.arc(W/2-xOff,y-h,H*.018*z+4,0,7);ctx.fill();
+   ctx.beginPath();ctx.arc(W/2+xOff,y-h,H*.018*z+4,0,7);ctx.fill();
+ }
+}
+function drawCar(x,y,z,color,front=true,scale=1){
+ let w=Math.min(W*.20,155)*scale,h=w*.46;
+ ctx.save();ctx.translate(x,y);
+ ctx.fillStyle='#0005';ctx.beginPath();ctx.ellipse(0,h*.55,w*.7,h*.22,0,0,7);ctx.fill();
+ ctx.fillStyle=color;poly([[-w*.55,h*.3],[-w*.48,-h*.18],[-w*.25,-h*.52],[w*.25,-h*.52],[w*.48,-h*.18],[w*.55,h*.3],[w*.4,h*.48],[-w*.4,h*.48]],color);
+ ctx.fillStyle='#1d2833';poly([[-w*.28,-h*.42],[w*.28,-h*.42],[w*.19,-h*.1],[-w*.19,-h*.1]],'#1d2833');
+ ctx.fillStyle=front?'#f6f1ce':'#e43c48';ctx.fillRect(-w*.43,h*.02,w*.15,h*.12);ctx.fillRect(w*.28,h*.02,w*.15,h*.12);
+ ctx.fillStyle='#111';ctx.fillRect(-w*.5,h*.28,w*.13,h*.26);ctx.fillRect(w*.37,h*.28,w*.13,h*.26);
+ ctx.restore();
+}
+function drawPlayer(){
+ let x=laneX(lane,.98), y=H*.78;
+ ctx.save();ctx.translate(x,y);
+ let w=Math.min(W*.20,155),h=w*.46;
+ ctx.fillStyle='#0007';ctx.beginPath();ctx.ellipse(0,h*.68,w*.62,h*.2,0,0,7);ctx.fill();
+ poly([[-w*.55,h*.28],[-w*.48,-h*.18],[-w*.25,-h*.55],[w*.25,-h*.55],[w*.48,-h*.18],[w*.55,h*.28],[w*.38,h*.52],[-w*.38,h*.52]],'#ed315a');
+ poly([[-w*.29,-h*.46],[w*.29,-h*.46],[w*.21,-h*.08],[-w*.21,-h*.08]],'#182430');
+ ctx.fillStyle='#f9d7d7';ctx.fillRect(-w*.4,h*.08,w*.13,h*.11);ctx.fillRect(w*.27,h*.08,w*.13,h*.11);
+ ctx.fillStyle='#111';ctx.fillRect(-w*.51,h*.27,w*.14,h*.3);ctx.fillRect(w*.37,h*.27,w*.14,h*.3);
+ ctx.fillStyle='#c81d48';ctx.fillRect(-w*.38,h*.42,w*.76,h*.09);
+ ctx.restore();
+}
+function drawPolice(){
+ let x=laneX(lane,.70), y=H*(.79+police*.13), s=.62+police*.35;
+ drawCar(x,y,.70,'#eef2f4',false,1);
+ let w=Math.min(W*.20,155)*.70*s;
+ ctx.fillStyle='#172333';ctx.fillRect(x-w*.18,y-w*.17,w*.36,w*.09);
+ ctx.fillStyle='#ef3340';ctx.fillRect(x-w*.2,y-w*.25,w*.17,w*.08);
+ ctx.fillStyle='#2c72ff';ctx.fillRect(x+w*.03,y-w*.25,w*.17,w*.08);
+}
+function draw(){
+ ctx.save();
+ if(shake>0)ctx.translate((Math.random()-.5)*shake,(Math.random()-.5)*shake);
+ drawCity();drawRoad();
+ cars.sort((a,b)=>a.z-b.z);
+ for(const c of cars) drawCar(laneX(c.lane,c.z),projY(c.z),c.z,c.color,true,1);
+ drawPolice();drawPlayer();
+ ctx.restore();
+ if(flash>0){ctx.fillStyle='rgba(255,255,255,'+(flash*.45)+')';ctx.fillRect(0,0,W,H)}
+}
+function loop(t){
+ if(!running)return;
+ let dt=Math.min(.035,(t-last)/1000||0);last=t;update(dt);draw();requestAnimationFrame(loop);
+}
+function start(){
+ reset();document.getElementById('start').classList.add('hidden');document.getElementById('gameover').style.display='none';
+ running=true;last=performance.now();requestAnimationFrame(loop);
+}
+const descriptions={
+ 'Wrong Way Chase':'Drive against traffic while police close in.',
+ 'Time Rush':'Score as much as possible before time runs out.',
+ 'Police Escape':'Keep the police behind you for as long as possible.',
+ 'Traffic Rush':'Heavy traffic, tighter gaps and faster action.'
+};
+const panels=['homePanel','playPanel','difficultyPanel','settingsPanel'];
+function showPanel(id){
+ panels.forEach(x=>document.getElementById(x).style.display=(x===id?'block':'none'));
+ document.getElementById('start').classList.remove('hidden');
+}
+document.getElementById('homePlay').onclick=()=>showPanel('playPanel');
+document.getElementById('homeSettings').onclick=()=>showPanel('settingsPanel');
+document.getElementById('backHomeFromPlay').onclick=()=>showPanel('homePanel');
+document.getElementById('backToPlay').onclick=()=>showPanel('playPanel');
+document.getElementById('backHomeFromSettings').onclick=()=>showPanel('homePanel');
+
+document.querySelectorAll('#playPanel .menuBtn').forEach(btn=>btn.onclick=()=>{
+ selectedMode=btn.dataset.mode;
+ document.getElementById('selectedMode').textContent=selectedMode.toUpperCase();
+ document.getElementById('modeDesc').textContent=descriptions[selectedMode];
+ showPanel('difficultyPanel');
+});
+document.querySelectorAll('.diff').forEach(btn=>btn.onclick=()=>{
+ difficulty=btn.dataset.diff;
+ start();
+});
+document.getElementById('again').onclick=()=>{
+ document.getElementById('gameover').style.display='none';
+ showPanel('homePanel');
+};
+
+let graphics=['LOW','MEDIUM','HIGH'], gi=2;
+document.getElementById('graphicsBtn').onclick=()=>{gi=(gi+1)%3;document.getElementById('graphicsBtn').textContent=graphics[gi]};
+let languages=['ENGLISH','ARABIC','FRENCH','MALAYALAM'], li=0;
+document.getElementById('languageBtn').onclick=()=>{li=(li+1)%languages.length;document.getElementById('languageBtn').textContent=languages[li]};
+function toggle(id){let e=document.getElementById(id);e.textContent=e.textContent==='ON'?'OFF':'ON'}
+document.getElementById('soundBtn').onclick=()=>toggle('soundBtn');
+document.getElementById('musicBtn').onclick=()=>toggle('musicBtn');
+document.getElementById('vibrationBtn').onclick=()=>toggle('vibrationBtn');
+document.getElementById('controlBtn').onclick=()=>{let e=document.getElementById('controlBtn');e.textContent=e.textContent==='SWIPE'?'BUTTONS':'SWIPE'};
+document.getElementById('fpsBtn').onclick=()=>{let e=document.getElementById('fpsBtn');e.textContent=e.textContent==='60'?'30':'60'};
+addEventListener('keydown',e=>{
+ if(e.key==='ArrowLeft'||e.key.toLowerCase()==='a'){targetLane=Math.max(0,targetLane-1);e.preventDefault()}
+ if(e.key==='ArrowRight'||e.key.toLowerCase()==='d'){targetLane=Math.min(2,targetLane+1);e.preventDefault()}
+});
+let sx=0,sy=0;
+canvas.addEventListener('touchstart',e=>{if(!running)return;sx=e.touches[0].clientX;sy=e.touches[0].clientY},{passive:false});
+canvas.addEventListener('touchend',e=>{
+ if(!running)return;
+ const dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;
+ if(Math.abs(dx)>35 && Math.abs(dx)>Math.abs(dy)){if(dx<0)targetLane=Math.max(0,targetLane-1);else targetLane=Math.min(2,targetLane+1)}
+ e.preventDefault();
+},{passive:false});
+reset();draw();showPanel('homePanel');
+</script>
+</body>
+</html>
